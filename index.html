@@ -1,46 +1,598 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Para ti 🌅</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galaxia de girasoles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@500;700&family=Fredoka:wght@600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #030302; overflow: hidden; font-family: Quicksand, "Segoe UI", system-ui, sans-serif; }
+  canvas.escena { display: block; width: 100%; height: 100%; touch-action: none; }
 
-    <link rel="stylesheet" href="styles.css" />
+  #pista {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    color: #ffe9a3; font-size: 14px; letter-spacing: .02em; text-shadow: 0 0 12px #000;
+    opacity: 0; transition: opacity 1.2s; pointer-events: none; text-align: center; padding: 0 16px;
+  }
+  #pista.visible { opacity: .85; }
+
+  /* ---------- Carta emergente ---------- */
+  #modal {
+    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; background: rgba(0,0,0,.72); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .35s;
+  }
+  #modal.abierto { opacity: 1; pointer-events: auto; }
+  #modal .carta { transform: scale(.92); transition: transform .35s; }
+  #modal.abierto .carta { transform: scale(1); }
+
+  .carta {
+    position: relative; box-sizing: border-box; width: min(340px, 86vw); height: min(500px, 70vh);
+    border-radius: 18px; box-shadow: 0 0 46px rgba(255, 210, 63, .55); overflow: hidden;
+  }
+  .script { font-family: "Great Vibes", "Segoe Script", cursive; font-weight: 400; }
+
+  /* Carta 1: dorada */
+  .carta.dorada { background: linear-gradient(135deg, #f9d25c, #f0a92a 60%, #f7c948); padding: 14px; }
+  .carta.dorada .marco {
+    position: relative; height: 100%; box-sizing: border-box; background: #fff8e6; border-radius: 22px;
+    padding: 16px 20px 0; text-align: center; overflow: hidden; color: #2b2113;
+  }
+  .carta.dorada h2 { margin: 0 0 8px; font-size: clamp(34px, 9vw, 46px); line-height: 1; text-align: left; }
+  .carta.dorada p { margin: 0 0 10px; font-size: clamp(12px, 3.3vw, 14.5px); line-height: 1.35; font-weight: 500; }
+  .carta.dorada .firma { font-size: clamp(30px, 8vw, 40px); line-height: 1.1; margin-top: 6px; }
+  .carta.dorada .ramo { position: absolute; left: 50%; bottom: 22px; height: 40%; transform: translateX(-50%); }
+  .carta.dorada .para {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); background: #f8f4ea; color: #444;
+    padding: 4px 22px; border-radius: 10px 10px 0 0; font-size: 13px; font-weight: 700;
+  }
+  .carta.dorada .corazon { position: absolute; color: #f0b429; font-size: 26px; }
+
+  /* Carta 2: flores amarillas */
+  .carta.flores { background-size: cover; background-position: center; padding: 18px 16px; }
+  .carta.flores .hoja {
+    background: #fff; border-radius: 16px; padding: 22px 16px 16px; text-align: center; color: #1f1a10;
+    height: 62%; box-sizing: border-box;
+  }
+  .carta.flores .hoja p { margin: 0; font-size: clamp(13px, 3.6vw, 16px); font-weight: 700; line-height: 1.3; }
+  .carta.flores .grande {
+    font-family: Fredoka, Impact, sans-serif; font-weight: 600; color: #ffc61a; font-size: clamp(30px, 9vw, 42px);
+    margin: 6px 0 10px; text-shadow: 1px 1px 0 #b68300;
+  }
+  .carta.flores .cierre { font-size: clamp(13px, 3.6vw, 16px); font-weight: 700; }
+  .carta.flores .flor { position: absolute; left: 50%; bottom: 0; width: 84%; transform: translateX(-50%); }
+
+  #cerrar {
+    position: relative; border: 0; cursor: pointer; background: #ffc61a; color: #2b2113; font: 700 15px Quicksand, sans-serif;
+    padding: 9px 26px; border-radius: 999px; box-shadow: 0 0 22px rgba(255, 198, 26, .6);
+  }
+  #cerrar img { position: absolute; right: -14px; bottom: -12px; width: 34px; height: 34px; }
+  #cerrar:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+</style>
 </head>
-
 <body>
-    <div class="container">
 
-        <div id="message">
-            ¿Te gustaría salir conmigo este 14 de febrero?
-        </div>
+<div id="pista">Arrastra para girar · Toca un ramo para abrir la carta</div>
 
-        <div class="sky">
-            <div class="sun" id="sun"></div>
-            <div class="moon" id="moon"></div>
-            <div class="stars" id="stars"></div>
-            <div class="butterflies" id="butterflies"></div>
-        </div>
+<div id="modal" aria-hidden="true">
+  <div id="cartaContenedor"></div>
+  <button id="cerrar" type="button">Cerrar <img id="iconoCerrar" alt=""></button>
+</div>
 
-        <div class="buttons">
-            <button id="yes">Sí 💖</button>
-            <button id="no">No 🙈</button>
-        </div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* ==================================================================
+   GALAXIA DE GIRASOLES  (Three.js r128)
+   Todo se dibuja por código: no necesitas imágenes externas.
+   Si quieres usar tus propias fotos de ramos, mira la función
+   texDe() y reemplaza el canvas por:
+       new THREE.TextureLoader().load('mi-ramo.png')
+   ================================================================== */
 
-        <div class="rose" id="rose">
-            <div class="petal p1"></div>
-            <div class="petal p2"></div>
-            <div class="petal p3"></div>
-            <div class="center"></div>
-            <div class="stem"></div>
-            <div class="leaf left"></div>
-            <div class="leaf right"></div>
-        </div>
+// ---------------- 1) LO QUE PUEDES PERSONALIZAR ----------------
+const CONFIG = {
+  fraseCorazon: 'Te amo 💛',
 
-    </div>
+  // Las dos primeras salen más grandes
+  frases: [
+    'Te Amo 💛', 'Mi Amor 💛', 'Eres mi sol 💛', 'Siempre juntos 💛', 'Me encantas 💛',
+    'Eres preciosa 💛', 'Eres única 💛', 'Amor de mi vida 💛', 'Te adoro 💛', 'Eres mi todo 💛',
+    'Contigo todo brilla 💛', 'Mi girasol 💛',
+  ],
 
-    <script src="script.js"></script>
+  // Al tocar un ramo se abren estas cartas (van alternando)
+  cartas: [
+    {
+      tipo: 'dorada',
+      titulo: 'Mi amor:',
+      texto: [
+        'Estas flores amarillas son como tú: brillantes, radiantes y llenas de alegría.',
+        'Gracias por iluminar cada uno de mis días. Eres simplemente hermosa.',
+      ],
+      firma: 'Te Amo Mucho',
+      pie: 'Para Ti',
+    },
+    {
+      tipo: 'flores',
+      texto: 'Qué afortunado soy de compartir mi vida contigo porque tú haces que mi vida sea',
+      destacado: 'TE QUIERO',
+      cierre: '¡Feliz día de las flores amarillas!',
+    },
+  ],
+
+  particulasGalaxia: 70000,
+  florecitas: 90,
+  ramosFlotantes: 8,
+  duracionIntro: 9, // segundos
+};
+
+// ---------------- 2) UTILIDADES ----------------
+const REDUCIR = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const GOLDEN = Math.PI * (3 - Math.sqrt(5)); // ángulo áureo ≈ 137.5°
+const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const rand = (a, b) => a + Math.random() * (b - a);
+const lienzo = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const texDe = (canvas) => {
+  const t = new THREE.CanvasTexture(canvas);
+  t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  return t;
+};
+
+// ---------------- 3) DIBUJO DE FLORES (Canvas 2D) ----------------
+function dibujarGirasol(g, cx, cy, R, o = {}) {
+  const petalos = o.petalos || 20;
+  g.save(); g.translate(cx, cy); g.rotate(o.rot || 0);
+  for (let capa = 0; capa < 2; capa++) {
+    const off = capa === 0 ? Math.PI / petalos : 0;
+    const largo = capa === 0 ? R * 0.86 : R;
+    for (let i = 0; i < petalos; i++) {
+      g.save(); g.rotate((i * 2 * Math.PI) / petalos + off);
+      const gr = g.createLinearGradient(0, R * 0.3, 0, largo);
+      gr.addColorStop(0, '#ff9d00'); gr.addColorStop(1, '#ffcf1a');
+      g.fillStyle = gr;
+      g.beginPath(); g.moveTo(0, R * 0.3);
+      g.quadraticCurveTo(R * 0.22, R * 0.62, 0, largo);
+      g.quadraticCurveTo(-R * 0.22, R * 0.62, 0, R * 0.3);
+      g.fill(); g.restore();
+    }
+  }
+  const Rd = R * 0.44;
+  const d = g.createRadialGradient(0, 0, 0, 0, 0, Rd);
+  d.addColorStop(0, '#5a3210'); d.addColorStop(1, '#2a1508');
+  g.fillStyle = d; g.beginPath(); g.arc(0, 0, Rd, 0, Math.PI * 2); g.fill();
+  // semillas: espiral de Vogel  r = c·√i ,  θ = i · 137.5°
+  const n = Math.round(60 + R * 1.6);
+  for (let i = 1; i < n; i++) {
+    const t = i / n, r = Rd * 0.95 * Math.sqrt(t), a = i * GOLDEN;
+    g.fillStyle = t > 0.55 ? '#c98a1e' : '#4a2a10';
+    g.beginPath(); g.arc(Math.cos(a) * r, Math.sin(a) * r, Math.max(0.6, Rd * 0.05), 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+}
+
+function dibujarMargarita(g, x, y, R, color, centro) {
+  g.save(); g.translate(x, y);
+  const n = 14; g.fillStyle = color;
+  for (let i = 0; i < n; i++) {
+    g.save(); g.rotate((i * 2 * Math.PI) / n);
+    g.beginPath(); g.ellipse(0, R * 0.62, R * 0.14, R * 0.4, 0, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  g.fillStyle = centro || '#d97a00'; g.beginPath(); g.arc(0, 0, R * 0.26, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
+function dibujarFlor5(g, x, y, R) {
+  g.save(); g.translate(x, y);
+  g.fillStyle = '#ffd21f';
+  for (let i = 0; i < 5; i++) {
+    const a = (i * 2 * Math.PI) / 5;
+    g.beginPath(); g.arc(Math.cos(a) * R * 0.5, Math.sin(a) * R * 0.5, R * 0.42, 0, Math.PI * 2); g.fill();
+  }
+  g.fillStyle = '#ff9d00'; g.beginPath(); g.arc(0, 0, R * 0.26, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
+function dibujarAnillo(g, x, y, R) {
+  g.save(); g.translate(x, y);
+  g.strokeStyle = '#ffb300'; g.lineWidth = R * 0.32;
+  g.beginPath(); g.arc(0, 0, R * 0.62, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = '#7a3d00'; g.beginPath(); g.arc(0, 0, R * 0.3, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
+function dibujarRosa(g, x, y, R) {
+  const gr = g.createRadialGradient(x - R * 0.2, y - R * 0.2, R * 0.1, x, y, R);
+  gr.addColorStop(0, '#ffe680'); gr.addColorStop(1, '#f0a10a');
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#c77d05'; g.lineWidth = 2.5;
+  for (let k = 1; k <= 3; k++) {
+    g.beginPath(); g.arc(x + (k % 2 ? 2 : -2), y, R * k * 0.25, Math.PI * 0.2 * k, Math.PI * (1.3 + 0.1 * k)); g.stroke();
+  }
+}
+
+// Ramo envuelto en papel. tipo 0 = girasoles, tipo 1 = rosas amarillas
+function dibujarRamo(tipo) {
+  const c = lienzo(480, 600), g = c.getContext('2d');
+  // hojas
+  g.fillStyle = '#3f7d2a';
+  [-1.25, -0.7, 0.7, 1.25].forEach((a) => {
+    g.beginPath(); g.ellipse(240 + Math.sin(a) * 135, 335 - Math.cos(a) * 95, 30, 78, a, 0, Math.PI * 2); g.fill();
+  });
+  // papel de atrás
+  g.fillStyle = tipo === 0 ? '#f7b6c8' : '#cfe8c4';
+  g.beginPath(); g.moveTo(70, 340); g.quadraticCurveTo(240, 300, 410, 340);
+  g.lineTo(256, 590); g.quadraticCurveTo(240, 602, 224, 590); g.closePath(); g.fill();
+  // papel de adelante
+  g.fillStyle = '#fff3d8';
+  g.beginPath(); g.moveTo(112, 366); g.quadraticCurveTo(240, 336, 368, 366);
+  g.lineTo(250, 586); g.lineTo(230, 586); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 2; g.stroke();
+  // flores (de atrás hacia adelante)
+  if (tipo === 0) {
+    dibujarGirasol(g, 240, 175, 78, { petalos: 20, rot: 0.2 });
+    dibujarGirasol(g, 130, 255, 72, { petalos: 20, rot: -0.4 });
+    dibujarGirasol(g, 350, 255, 72, { petalos: 20, rot: 0.5 });
+    dibujarGirasol(g, 240, 275, 90, { petalos: 22, rot: 0.1 });
+  } else {
+    [[240, 185, 58], [140, 255, 56], [340, 255, 56], [190, 300, 60], [290, 300, 60]].forEach(([x, y, r]) => dibujarRosa(g, x, y, r));
+  }
+  // moño
+  g.fillStyle = '#ffd23f'; g.strokeStyle = '#c99700'; g.lineWidth = 2;
+  [[-0.5, 205], [0.5, 275]].forEach(([rot, x]) => {
+    g.save(); g.translate(x + 10, 440); g.rotate(rot);
+    g.beginPath(); g.ellipse(0, 0, 36, 18, 0, 0, Math.PI * 2); g.fill(); g.stroke(); g.restore();
+  });
+  g.beginPath(); g.arc(240, 442, 13, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(236, 452); g.lineTo(206, 520); g.lineTo(228, 512); g.lineTo(240, 528); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(244, 452); g.lineTo(274, 520); g.lineTo(252, 512); g.lineTo(240, 528); g.closePath(); g.fill();
+  return c;
+}
+
+function fondoAmarillas(w, h) {
+  const c = lienzo(w, h), g = c.getContext('2d');
+  g.fillStyle = '#d9a400'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#3f7d2a'; g.lineWidth = 6;
+  for (let i = 0; i < 24; i++) { g.beginPath(); g.moveTo(rand(0, w), h); g.lineTo(rand(0, w), rand(0, h)); g.stroke(); }
+  const colores = ['#ffd21f', '#ffb400', '#ffe66b', '#ffc61a'];
+  for (let i = 0; i < 80; i++) dibujarMargarita(g, rand(0, w), rand(0, h), rand(28, 64), colores[i % 4]);
+  return c;
+}
+
+function florGrande() {
+  const c = lienzo(400, 300), g = c.getContext('2d');
+  dibujarMargarita(g, 110, 190, 90, '#ffb400', '#c4501a');
+  dibujarMargarita(g, 290, 190, 90, '#ffb400', '#c4501a');
+  dibujarMargarita(g, 200, 160, 120, '#ffd21f', '#e08a00');
+  return c;
+}
+
+function iconoGirasol(px) {
+  const c = lienzo(px, px);
+  dibujarGirasol(c.getContext('2d'), px / 2, px / 2, px * 0.46, { petalos: 16 });
+  return c;
+}
+
+const IMG = {
+  ramoGirasol: dibujarRamo(0).toDataURL(),
+  fondoAmarillas: fondoAmarillas(420, 630).toDataURL(),
+  florGrande: florGrande().toDataURL(),
+  icono: iconoGirasol(64).toDataURL(),
+};
+
+// ---------------- 4) ESCENA ----------------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.domElement.className = 'escena';
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x030302);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
+const objetivo = new THREE.Vector3(0, 2.2, 0);
+
+// textura suave para puntos y brillos
+const glowCanvas = lienzo(64, 64);
+{
+  const g = glowCanvas.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+}
+const glowTex = texDe(glowCanvas);
+
+// Estrellas lejanas
+{
+  const N = 2600, p = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const r = rand(70, 140), a = Math.random() * Math.PI * 2, b = Math.acos(rand(-1, 1));
+    p[i * 3] = r * Math.sin(b) * Math.cos(a); p[i * 3 + 1] = r * Math.cos(b); p[i * 3 + 2] = r * Math.sin(b) * Math.sin(a);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    size: 1.1, map: glowTex, color: 0xfff3c4, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending,
+  })));
+}
+
+// Galaxia de polvo dorado
+const galaxiaMat = new THREE.PointsMaterial({
+  size: 0.07, map: glowTex, vertexColors: true, transparent: true, opacity: 0,
+  depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
+});
+const galaxia = (() => {
+  const N = CONFIG.particulasGalaxia, RMAX = 12, RAMAS = 3, GIRO = 0.85, ALEATORIO = 0.35;
+  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  const cIn = new THREE.Color('#fff4b0'), cMid = new THREE.Color('#e8c300'), cOut = new THREE.Color('#7a6a00'), c = new THREE.Color();
+  for (let i = 0; i < N; i++) {
+    const r = Math.pow(Math.random(), 1.7) * RMAX;
+    const ang = ((i % RAMAS) / RAMAS) * Math.PI * 2 + r * GIRO;
+    const rnd = () => Math.pow(Math.random(), 2.5) * (Math.random() < 0.5 ? 1 : -1) * ALEATORIO * (0.4 + r * 0.25);
+    pos[i * 3] = Math.cos(ang) * r + rnd();
+    pos[i * 3 + 1] = rnd() * 0.35;
+    pos[i * 3 + 2] = Math.sin(ang) * r + rnd();
+    const t = r / RMAX;
+    if (t < 0.35) c.copy(cIn).lerp(cMid, t / 0.35); else c.copy(cMid).lerp(cOut, (t - 0.35) / 0.65);
+    const v = 0.55 + Math.random() * 0.45;
+    col[i * 3] = c.r * v; col[i * 3 + 1] = c.g * v; col[i * 3 + 2] = c.b * v;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const p = new THREE.Points(geo, galaxiaMat);
+  p.scale.setScalar(0.02);
+  scene.add(p);
+  return p;
+})();
+
+// Núcleo brillante y neblina amarilla
+const brillos = [];
+function brillo(color, escala, x, y, z, opacidad) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTex, color, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  s.scale.set(escala, escala, 1); s.position.set(x, y, z); s.userData.op = opacidad;
+  scene.add(s); brillos.push(s); return s;
+}
+brillo(0xfff2a0, 6, 0, 0.3, 0, 0.9);
+brillo(0xffe066, 2.6, 0, 1.1, 0, 0.7);
+brillo(0x8f8a00, 55, -20, 10, -22, 0.22);
+brillo(0x7a7000, 55, 22, 8, -26, 0.2);
+brillo(0x6f6a00, 60, 0, 16, -32, 0.18);
+
+// ---------------- 5) OBJETOS FLOTANTES ----------------
+const flotantes = new THREE.Group();
+scene.add(flotantes);
+const listaFlores = [], listaRamos = [], listaTextos = [];
+
+function nuevoSprite(tex, w, h) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0 }));
+  s.scale.set(w, h, 1); s.userData.op = 1;
+  return s;
+}
+
+// Florecitas
+{
+  const fabricas = [
+    (g) => dibujarGirasol(g, 64, 64, 58, { petalos: 16 }),
+    (g) => dibujarMargarita(g, 64, 64, 56, '#ffd21f', '#e08a00'),
+    (g) => dibujarAnillo(g, 64, 64, 54),
+    (g) => dibujarFlor5(g, 64, 64, 54),
+  ];
+  const texturas = fabricas.map((f) => { const c = lienzo(128, 128); f(c.getContext('2d')); return texDe(c); });
+  const pesos = [0, 1, 1, 2, 2, 2, 3, 3];
+  for (let i = 0; i < CONFIG.florecitas; i++) {
+    const tam = rand(0.25, 0.75);
+    const s = nuevoSprite(texturas[pesos[i % pesos.length]], tam, tam);
+    const a = Math.random() * Math.PI * 2, r = rand(3, 24);
+    s.position.set(Math.cos(a) * r, rand(-7, 11), Math.sin(a) * r);
+    s.userData.baseY = s.position.y; s.userData.fase = Math.random() * 6.28; s.userData.giro = rand(-0.4, 0.4);
+    flotantes.add(s); listaFlores.push(s);
+  }
+}
+
+// Texto flotante
+function crearTexto(txt, alto) {
+  const fuente = '700 54px Quicksand, "Segoe UI", system-ui, sans-serif';
+  const m = lienzo(8, 8).getContext('2d'); m.font = fuente;
+  const w = Math.ceil(m.measureText(txt).width) + 70;
+  const c = lienzo(w, 110), g = c.getContext('2d');
+  g.font = fuente; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = 'rgba(255,220,90,.95)'; g.shadowBlur = 18; g.fillStyle = '#fff';
+  g.fillText(txt, w / 2, 55); g.fillText(txt, w / 2, 55);
+  return nuevoSprite(texDe(c), (alto * w) / 110, alto);
+}
+
+CONFIG.frases.forEach((txt, i) => {
+  const grande = i < 2;
+  const s = crearTexto(txt, grande ? 1.1 : 0.7);
+  const a = (i / CONFIG.frases.length) * Math.PI * 2 + rand(-0.2, 0.2);
+  const r = grande ? rand(5, 6.5) : rand(5.5, 11);
+  s.position.set(Math.cos(a) * r, rand(0.6, 3.8), Math.sin(a) * r);
+  s.userData.baseY = s.position.y; s.userData.fase = Math.random() * 6.28;
+  flotantes.add(s); listaTextos.push(s);
+});
+
+// Ramos (clicables)
+{
+  const texRamos = [texDe(dibujarRamo(0)), texDe(dibujarRamo(1))];
+  const n = CONFIG.ramosFlotantes;
+  for (let i = 0; i < n; i++) {
+    const h = rand(1.7, 2.5);
+    const s = nuevoSprite(texRamos[i % 2], h * 0.8, h);
+    const a = (i / n) * Math.PI * 2 + rand(-0.25, 0.25), r = rand(5.5, 9.5);
+    s.position.set(Math.cos(a) * r, rand(1, 3.2), Math.sin(a) * r);
+    s.userData.baseY = s.position.y; s.userData.fase = Math.random() * 6.28;
+    s.userData.carta = i % CONFIG.cartas.length;
+    flotantes.add(s); listaRamos.push(s);
+  }
+}
+
+// ---------------- 6) EL CORAZÓN ----------------
+const corazon = new THREE.Group();
+corazon.position.set(0, 4.6, 0);
+scene.add(corazon);
+const corazonMat = new THREE.PointsMaterial({
+  size: 0.09, map: glowTex, vertexColors: true, transparent: true, opacity: 0,
+  depthWrite: false, blending: THREE.AdditiveBlending,
+});
+{
+  const M = 2600, pos = new Float32Array(M * 3), col = new Float32Array(M * 3), c = new THREE.Color();
+  const ruido = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.14;
+  for (let i = 0; i < M; i++) {
+    const t = Math.random() * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    pos[i * 3] = x * 0.2 + ruido(); pos[i * 3 + 1] = y * 0.2 + ruido(); pos[i * 3 + 2] = ruido() * 0.6;
+    c.setHSL(0.13 + Math.random() * 0.03, 1, 0.55 + Math.random() * 0.25);
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  corazon.add(new THREE.Points(geo, corazonMat));
+}
+
+// Ramo grande dentro del corazón + frase (también abre carta)
+const ramoCentral = nuevoSprite(texDe(dibujarRamo(1)), 2.9, 3.6);
+ramoCentral.position.set(0, 4.0, 0); ramoCentral.userData.carta = 0;
+scene.add(ramoCentral); listaRamos.push(ramoCentral);
+const textoCorazon = crearTexto(CONFIG.fraseCorazon, 0.85);
+textoCorazon.position.set(0, 6.35, 0);
+scene.add(textoCorazon);
+
+// ---------------- 7) CÁMARA Y CONTROLES ----------------
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.copy(objetivo);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+controls.enablePan = false; controls.minDistance = 5; controls.maxDistance = 45;
+controls.maxPolarAngle = Math.PI * 0.53;
+controls.autoRotate = !REDUCIR; controls.autoRotateSpeed = 0.5;
+controls.enabled = REDUCIR; // sin intro si el sistema pide menos movimiento
+
+function camaraIntro(p) {
+  const e = sm(0, 1, p);
+  const dist = 46 - 30 * e, phi = 1.25, theta = 0.6 + e * 1.2;
+  camera.position.set(
+    objetivo.x + dist * Math.sin(phi) * Math.sin(theta),
+    objetivo.y + dist * Math.cos(phi),
+    objetivo.z + dist * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(objetivo);
+}
+
+// ---------------- 8) CARTAS ----------------
+const modal = document.getElementById('modal');
+const contenedor = document.getElementById('cartaContenedor');
+document.getElementById('iconoCerrar').src = IMG.icono;
+
+function htmlCarta(c) {
+  if (c.tipo === 'dorada') {
+    return `<div class="carta dorada"><div class="marco">
+      <h2 class="script">${c.titulo}</h2>
+      ${c.texto.map((p) => `<p>${p}</p>`).join('')}
+      <div class="firma script">${c.firma}</div>
+      <span class="corazon" style="right:26px;top:170px">♥</span>
+      <span class="corazon" style="left:22px;top:210px;font-size:18px">♥</span>
+      <img class="ramo" src="${IMG.ramoGirasol}" alt="">
+      <div class="para">${c.pie}</div></div></div>`;
+  }
+  return `<div class="carta flores" style="background-image:url(${IMG.fondoAmarillas})">
+    <div class="hoja"><p>${c.texto}</p><div class="grande">${c.destacado}</div><div class="cierre">${c.cierre}</div></div>
+    <img class="flor" src="${IMG.florGrande}" alt=""></div>`;
+}
+function abrirCarta(i) {
+  contenedor.innerHTML = htmlCarta(CONFIG.cartas[i]);
+  modal.classList.add('abierto'); modal.setAttribute('aria-hidden', 'false');
+  controls.enabled = false;
+  document.getElementById('cerrar').focus();
+}
+function cerrarCarta() {
+  modal.classList.remove('abierto'); modal.setAttribute('aria-hidden', 'true');
+  controls.enabled = intro >= 1;
+}
+document.getElementById('cerrar').addEventListener('click', cerrarCarta);
+modal.addEventListener('click', (e) => { if (e.target === modal) cerrarCarta(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarCarta(); });
+
+// Clic en ramo (distingue clic de arrastre)
+const rayo = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function ramoBajo(e) {
+  ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  rayo.setFromCamera(ndc, camera);
+  const hit = rayo.intersectObjects(listaRamos)[0];
+  return hit ? hit.object : null;
+}
+let presionado = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { presionado = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!presionado || intro < 1) return;
+  const d = Math.hypot(e.clientX - presionado.x, e.clientY - presionado.y);
+  presionado = null;
+  if (d < 6) { const r = ramoBajo(e); if (r) abrirCarta(r.userData.carta); }
+});
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (intro < 1 || e.buttons) return;
+  renderer.domElement.style.cursor = ramoBajo(e) ? 'pointer' : 'grab';
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------------- 9) ANIMACIÓN ----------------
+let intro = REDUCIR ? 1 : 0, pistaMostrada = false;
+const reloj = new THREE.Clock();
+const pista = document.getElementById('pista');
+const fijarOp = (lista, f) => lista.forEach((s) => { s.material.opacity = s.userData.op * f; });
+
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(reloj.getDelta(), 0.05), t = reloj.elapsedTime;
+
+  if (intro < 1) {
+    intro = Math.min(1, intro + dt / CONFIG.duracionIntro);
+    camaraIntro(intro);
+    if (intro >= 1) { controls.enabled = true; }
+  } else {
+    if (!pistaMostrada) {
+      pistaMostrada = true; pista.classList.add('visible');
+      setTimeout(() => pista.classList.remove('visible'), 7000);
+    }
+    controls.update();
+  }
+
+  // Aparición por etapas: florecitas → galaxia → ramos y frases → corazón
+  const eGal = sm(0.05, 0.75, intro);
+  galaxia.scale.setScalar(0.02 + 0.98 * eGal);
+  galaxiaMat.opacity = sm(0.05, 0.5, intro) * 0.9;
+  fijarOp(brillos, sm(0.3, 0.8, intro));
+  fijarOp(listaFlores, sm(0, 0.3, intro));
+  const fObj = sm(0.55, 0.9, intro);
+  fijarOp(listaRamos, fObj); fijarOp(listaTextos, fObj);
+  const fCor = sm(0.75, 1, intro);
+  corazonMat.opacity = fCor; textoCorazon.material.opacity = fCor;
+
+  if (!REDUCIR) {
+    galaxia.rotation.y += dt * 0.05;
+    flotantes.rotation.y += dt * 0.015;
+    listaFlores.forEach((s) => { s.material.rotation += s.userData.giro * dt; });
+  }
+  [...listaFlores, ...listaRamos, ...listaTextos].forEach((s) => {
+    if (s.userData.baseY !== undefined) s.position.y = s.userData.baseY + Math.sin(t * 0.8 + s.userData.fase) * 0.18;
+  });
+
+  // el corazón siempre mira a la cámara (solo en horizontal)
+  corazon.rotation.y = Math.atan2(camera.position.x - corazon.position.x, camera.position.z - corazon.position.z);
+  corazon.scale.setScalar(1 + 0.025 * Math.sin(t * 2));
+
+  renderer.render(scene, camera);
+}
+camaraIntro(intro);
+tick();
+</script>
 </body>
-
 </html>
