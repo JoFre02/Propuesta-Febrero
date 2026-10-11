@@ -3,100 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Texto de corazones</title>
+<title>Para ti</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Fredoka:wght@700&family=Lobster&family=Pacifico&display=swap" rel="stylesheet">
 <style>
-  :root { --rosa:#ff4d8d; }
   * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; }
   body {
-    margin:0; min-height:100vh; color:#fff;
-    font-family: system-ui, "Segoe UI", sans-serif;
-    background: radial-gradient(ellipse at 50% 35%, #4a1238 0%, #1f0a22 55%, #10051a 100%);
-    display:flex; flex-direction:column; align-items:center; padding:20px 12px 40px;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+    background: radial-gradient(ellipse at 50% 40%, #4a1238 0%, #1f0a22 55%, #10051a 100%);
   }
-  h1 { font-size:1.05rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; opacity:.7; margin:6px 0 16px; }
-  .controles {
-    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:flex-end;
-    background:rgba(255,255,255,.07); backdrop-filter: blur(6px);
-    padding:12px 16px; border-radius:16px; margin-bottom:22px; max-width:1000px;
-  }
-  .controles label { font-size:.8rem; opacity:.85; display:flex; flex-direction:column; gap:4px; }
-  input[type=text], select {
-    padding:9px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.2);
-    background:rgba(0,0,0,.35); color:#fff; font-size:1rem; outline:none;
-  }
-  input[type=text] { min-width:220px; }
-  input[type=text]:focus, select:focus { border-color:var(--rosa); }
-  input[type=range] { accent-color:var(--rosa); width:130px; }
-  button {
-    padding:10px 16px; border-radius:10px; border:none; font-size:1rem; font-weight:600;
-    background:linear-gradient(135deg,#ff4d8d,#ff7a59); color:#fff; cursor:pointer;
-  }
-  button.sec { background:rgba(255,255,255,.14); }
-  button:hover { filter:brightness(1.1); }
+  #fondo { position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
   #lienzo {
-    width:100%; max-width:1200px; height:auto; display:block; border-radius:24px;
+    position:relative; z-index:1;
+    width:100%; max-width:1200px; max-height:100%; height:auto; display:block;
     background: radial-gradient(ellipse at center, rgba(255,60,120,.22) 0%, rgba(255,60,120,0) 70%);
   }
-  .ayuda { font-size:.78rem; opacity:.55; margin-top:18px; text-align:center; }
 </style>
 </head>
 <body>
 
-<h1>Texto de corazones</h1>
-
-<div class="controles">
-  <label>Texto
-    <input id="inputTexto" type="text" maxlength="60" placeholder="Escribe algo...">
-  </label>
-  <label>Colores
-    <select id="selectPaleta">
-      <option value="rojos">❤️ Rojos</option>
-      <option value="rosas">💗 Rosas</option>
-      <option value="mixto">💞 Rojos + rosas + morado</option>
-      <option value="arcoiris">🌈 Arcoíris</option>
-      <option value="dorado">💛 Dorado</option>
-    </select>
-  </label>
-  <label>Letra
-    <select id="selectFuente">
-      <option value="lobster">Romántica (Lobster)</option>
-      <option value="pacifico">Cursiva (Pacifico)</option>
-      <option value="fredoka">Redondeada (Fredoka)</option>
-      <option value="baloo">Gordita (Baloo)</option>
-      <option value="gruesa">Bloque (sistema)</option>
-    </select>
-  </label>
-  <label>Tamaño de los corazones
-    <input id="rangoEsp" type="range" min="8" max="26" step="1">
-  </label>
-  <button id="btnGenerar">Generar</button>
-  <button id="btnDescargar" class="sec">Descargar PNG</button>
-</div>
-
+<canvas id="fondo"></canvas>
 <canvas id="lienzo"></canvas>
-<div class="ayuda">Usa «|» en el texto para separar líneas (ej: Te|Amo).</div>
 
 <script>
-/* ===================== CONFIGURACIÓN (edita aquí) ===================== */
+/* ===================== CONFIGURACIÓN (edita solo aquí) ===================== */
 const CONFIG = {
-  texto: "Te Amo",      // cualquier texto. Usa | o \n para varias líneas
+  texto: "Te Amo",      // el texto que se verá. Usa | o \n para varias líneas (ej: "Te|Amo")
   paleta: "rojos",      // "rojos" | "rosas" | "mixto" | "arcoiris" | "dorado"
-  espaciado: 13,        // tamaño/densidad de los corazones (menor = más pequeños y más detalle)
   fuente: "lobster",    // "lobster" | "pacifico" | "fredoka" | "baloo" | "gruesa"
-  animar: true          // aparición + latido
+  espaciado: 13,        // tamaño de los corazones (menor = más pequeños y más detalle)
+  animar: true,         // aparición + latido (false = imagen quieta)
+  rosasCayendo: true,   // rosas rojas cayendo de fondo (false = sin rosas)
+  cantidadRosas: 45     // cuántas rosas a la vez (más = más lluvia de rosas)
 };
 const ANCHO = 1200;     // ancho lógico del lienzo
-/* ====================================================================== */
+/* =========================================================================== */
 
 const FUENTES = {
-  lobster:  { css: fs => `${fs}px Lobster, "Brush Script MT", cursive` },
-  pacifico: { css: fs => `${fs}px Pacifico, "Brush Script MT", cursive` },
-  fredoka:  { css: fs => `700 ${fs}px Fredoka, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif` },
-  baloo:    { css: fs => `800 ${fs}px "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif` },
-  gruesa:   { css: fs => `900 ${fs}px "Arial Black", Impact, "Helvetica Neue", Arial, sans-serif` }
+  lobster:  fs => `${fs}px Lobster, "Brush Script MT", cursive`,
+  pacifico: fs => `${fs}px Pacifico, "Brush Script MT", cursive`,
+  fredoka:  fs => `700 ${fs}px Fredoka, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif`,
+  baloo:    fs => `800 ${fs}px "Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif`,
+  gruesa:   fs => `900 ${fs}px "Arial Black", Impact, "Helvetica Neue", Arial, sans-serif`
 };
 
 /* ---------- colores ---------- */
@@ -158,7 +108,7 @@ let SPR_INT = [], SPR_BORDE = [];
 function prepararSprites() {
   const pal = PALETAS[CONFIG.paleta] || ROJOS;
   SPR_INT = pal.map(crearSprite);
-  // contorno: tonos más oscuros y saturados para que la forma de las letras se lea bien
+  // contorno: tonos más oscuros para que la forma de las letras se lea bien
   SPR_BORDE = pal.map(([cl, os]) => crearSprite([mezclar(cl, os, 0.4), mezclar(os, "#000000", 0.3)]));
 }
 const elegir = a => a[Math.floor(Math.random() * a.length)];
@@ -173,7 +123,7 @@ function pintarMascara(lineas, fs, dx = 0, dy = 0) {
   const off = document.createElement("canvas");
   off.width = ANCHO; off.height = H;
   const o = off.getContext("2d", { willReadFrequently: true });
-  o.font = (FUENTES[CONFIG.fuente] || FUENTES.gruesa).css(fs);
+  o.font = (FUENTES[CONFIG.fuente] || FUENTES.gruesa)(fs);
   o.fillStyle = "#000"; o.textAlign = "center"; o.textBaseline = "middle";
   lineas.forEach((l, i) => o.fillText(l, ANCHO / 2 + dx, H / 2 + dy + (i - (lineas.length - 1) / 2) * fs * 1.1));
   const d = o.getImageData(0, 0, ANCHO, H).data;
@@ -220,7 +170,7 @@ function calcularPuntos(texto, esp) {
     }
   }
 
-  // 2) contorno: corazones encadenados siguiendo exactamente el borde de cada letra
+  // 2) contorno: corazones encadenados siguiendo el borde real de cada letra
   const contorno = [];
   for (let y = 1; y < H - 1; y += 2)
     for (let x = 1; x < ANCHO - 1; x += 2)
@@ -259,22 +209,19 @@ function calcularPuntos(texto, esp) {
 }
 
 /* ---------- escena ---------- */
-let puntos = [], flotantes = [], inicio = 0, ultimo = 0, genId = 0;
+let puntos = [], inicio = 0;
 const lienzo = document.getElementById("lienzo");
 const ctx = lienzo.getContext("2d");
 
 async function cargarFuente() {
-  const f = (FUENTES[CONFIG.fuente] || FUENTES.gruesa).css(100);
+  const f = (FUENTES[CONFIG.fuente] || FUENTES.gruesa)(100);
   try {
     await Promise.race([document.fonts.load(f, CONFIG.texto), new Promise(r => setTimeout(r, 2500))]);
   } catch (e) { /* si falla, se usa la fuente de respaldo */ }
 }
 
 async function generar() {
-  const id = ++genId;
   await cargarFuente();
-  if (id !== genId) return;
-
   prepararSprites();
   const esp = CONFIG.espaciado;
   const pts = calcularPuntos(CONFIG.texto, esp);
@@ -292,14 +239,8 @@ async function generar() {
   }));
   // primero el relleno y encima el contorno
   puntos = [...barajar(hechos.filter(p => !p.borde)), ...barajar(hechos.filter(p => p.borde))];
-
-  flotantes = Array.from({ length: 26 }, () => ({
-    x: Math.random() * ANCHO, y: Math.random() * H,
-    v: 12 + Math.random() * 22, r: 8 + Math.random() * 14,
-    fase: Math.random() * 6.28, sprite: elegir(SPR_INT)
-  }));
   inicio = performance.now();
-  ultimo = inicio;
+  requestAnimationFrame(dibujar);
 }
 
 const easeOutBack = t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
@@ -310,22 +251,10 @@ function latido(ms) {
 }
 
 function dibujar(t) {
-  const dt = Math.min((t - ultimo) / 1000, 0.05); ultimo = t;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, lienzo.width, lienzo.height);
   const tr = t - inicio;
 
-  // fondo: corazones flotando
-  ctx.globalAlpha = 0.26;
-  for (const f of flotantes) {
-    if (CONFIG.animar) { f.y -= f.v * dt; if (f.y < -f.r) { f.y = H + f.r; f.x = Math.random() * ANCHO; } }
-    const x = f.x + Math.sin(tr / 1400 + f.fase) * 10;
-    ctx.setTransform(DPR, 0, 0, DPR, x * DPR, f.y * DPR);
-    ctx.drawImage(f.sprite, -f.r, -f.r, f.r * 2, f.r * 2);
-  }
-  ctx.globalAlpha = 1;
-
-  // texto de corazones
   for (const p of puntos) {
     let esc = 1, rot = p.rot;
     if (CONFIG.animar) {
@@ -338,41 +267,102 @@ function dibujar(t) {
     ctx.setTransform(cos, sin, -sin, cos, p.x * DPR, p.y * DPR);
     ctx.drawImage(p.sprite, -p.radio, -p.radio, p.radio * 2, p.radio * 2);
   }
-  requestAnimationFrame(dibujar);
+  if (CONFIG.animar) requestAnimationFrame(dibujar);
 }
 
-/* ---------- controles ---------- */
-const $ = id => document.getElementById(id);
-$("inputTexto").value = CONFIG.texto;
-$("selectPaleta").value = CONFIG.paleta;
-$("selectFuente").value = CONFIG.fuente;
-$("rangoEsp").value = CONFIG.espaciado;
+/* ---------- rosas rojas cayendo de fondo ---------- */
+const TAU = Math.PI * 2;
 
-function aplicar() {
-  CONFIG.texto = $("inputTexto").value.trim() || "Te Amo";
-  CONFIG.paleta = $("selectPaleta").value;
-  CONFIG.fuente = $("selectFuente").value;
-  CONFIG.espaciado = Number($("rangoEsp").value);
-  generar();
+function dibujarRosa(c, [claro, oscuro]) {
+  c.beginPath(); c.arc(0, 0, 1, 0, TAU);
+  c.fillStyle = mezclar(oscuro, "#000000", 0.35); c.fill();
+  const capas = 4;
+  for (let k = 0; k < capas; k++) {
+    const rad = 0.98 - k * 0.22;
+    const n = k < 3 ? 5 : 3;
+    const rot = Math.random() * TAU;
+    const color = mezclar(claro, oscuro, k / (capas - 1));
+    for (let i = 0; i < n; i++) {
+      const a = rot + (i * TAU) / n;
+      c.beginPath();
+      c.arc(Math.cos(a) * rad * 0.42, Math.sin(a) * rad * 0.42, rad * 0.62, 0, TAU);
+      c.fillStyle = color; c.fill();
+      c.lineWidth = 0.04; c.strokeStyle = "rgba(60,0,15,.4)"; c.stroke();
+    }
+  }
+  c.beginPath();                                   // espiral central
+  for (let t = 0; t < 9; t += 0.2) {
+    const r = 0.02 + t * 0.022;
+    const x = Math.cos(t) * r, y = Math.sin(t) * r;
+    t === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+  }
+  c.lineWidth = 0.05; c.strokeStyle = mezclar(oscuro, "#000000", 0.5); c.stroke();
 }
-$("btnGenerar").addEventListener("click", aplicar);
-["selectPaleta", "selectFuente", "rangoEsp"].forEach(id => $(id).addEventListener("change", aplicar));
-$("inputTexto").addEventListener("keydown", e => { if (e.key === "Enter") aplicar(); });
 
-$("btnDescargar").addEventListener("click", () => {
-  const out = document.createElement("canvas");
-  out.width = lienzo.width; out.height = lienzo.height;
-  const c = out.getContext("2d");
-  const g = c.createRadialGradient(out.width / 2, out.height / 2, 0, out.width / 2, out.height / 2, out.width * 0.65);
-  g.addColorStop(0, "#4a1238"); g.addColorStop(1, "#10051a");
-  c.fillStyle = g; c.fillRect(0, 0, out.width, out.height);
-  c.drawImage(lienzo, 0, 0);
-  const a = document.createElement("a");
-  a.download = "texto-corazones.png"; a.href = out.toDataURL("image/png"); a.click();
-});
+const PAL_ROSA = [["#ff6b81", "#9d0208"], ["#ff5c5c", "#7a0a1e"], ["#e5383b", "#6a040f"], ["#ff4d6d", "#800f2f"], ["#ff7b7b", "#8d0801"]];
+const fondo = document.getElementById("fondo");
+const fctx = fondo.getContext("2d");
+let SPR_ROSA = [], rosas = [], fw = 0, fh = 0, tPrev = 0;
+
+function crearSpriteRosa(par) {
+  const s = document.createElement("canvas");
+  s.width = s.height = Math.ceil(R_PX * 2 + 6);
+  const c = s.getContext("2d");
+  c.translate(s.width / 2, s.height / 2);
+  c.scale(R_PX * 0.97, R_PX * 0.97);
+  dibujarRosa(c, par);
+  return s;
+}
+
+function nuevaRosa(inicial) {
+  const prof = Math.random();                      // 0 = lejos (pequeña, lenta), 1 = cerca (grande, rápida)
+  const r = 12 + prof * 26;
+  return {
+    x: Math.random() * fw, y: inicial ? Math.random() * (fh + 100) - 50 : -r * 2,
+    r, v: 35 + prof * 75 + Math.random() * 20,
+    amp: 12 + Math.random() * 30, frec: 0.4 + Math.random() * 0.8, fase: Math.random() * TAU,
+    rot: Math.random() * TAU, vrot: (Math.random() - 0.5) * 1.2, tumb: Math.random() * TAU,
+    alfa: 0.45 + prof * 0.5, sprite: elegir(SPR_ROSA)
+  };
+}
+
+function ajustarFondo() {
+  fw = window.innerWidth; fh = window.innerHeight;
+  fondo.width = Math.round(fw * DPR); fondo.height = Math.round(fh * DPR);
+  const n = Math.round(CONFIG.cantidadRosas * Math.min(1, fw / 1100 + 0.4));
+  rosas = Array.from({ length: n }, () => nuevaRosa(true)).sort((a, b) => a.r - b.r);  // las grandes quedan delante
+}
+
+function animarFondo(t) {
+  const dt = Math.min((t - tPrev) / 1000, 0.05); tPrev = t;
+  fctx.setTransform(1, 0, 0, 1, 0, 0);
+  fctx.clearRect(0, 0, fondo.width, fondo.height);
+  for (const p of rosas) {
+    p.y += p.v * dt; p.rot += p.vrot * dt;
+    if (p.y > fh + p.r * 2) { p.y = -p.r * 2; p.x = Math.random() * fw; }
+    const x = p.x + Math.sin((t / 1000) * p.frec + p.fase) * p.amp;
+    const sy = 0.78 + 0.22 * Math.abs(Math.cos(t / 1600 + p.tumb));   // leve volteo al caer
+    const cos = Math.cos(p.rot) * DPR, sin = Math.sin(p.rot) * DPR;
+    fctx.setTransform(cos, sin, -sin * sy, cos * sy, x * DPR, p.y * DPR);
+    fctx.globalAlpha = p.alfa;
+    fctx.drawImage(p.sprite, -p.r, -p.r, p.r * 2, p.r * 2);
+  }
+  fctx.globalAlpha = 1;
+  requestAnimationFrame(animarFondo);
+}
+
+if (CONFIG.rosasCayendo) {
+  SPR_ROSA = PAL_ROSA.map(crearSpriteRosa);
+  ajustarFondo();
+  let temporizador;
+  window.addEventListener("resize", () => { clearTimeout(temporizador); temporizador = setTimeout(ajustarFondo, 150); });
+  tPrev = performance.now();
+  requestAnimationFrame(animarFondo);
+} else {
+  fondo.style.display = "none";
+}
 
 generar();
-requestAnimationFrame(dibujar);
 </script>
 </body>
 </html>
